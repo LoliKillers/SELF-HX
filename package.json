@@ -1,0 +1,37 @@
+{
+  "name": "self-lk",
+  "version": "1.0.0",
+  "description": "SELF-LK Forked From SELF-HX",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "start": "node-lol-dev index",
+    "test": "node test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/LoliKillers/SELF-LK.git"
+  },
+  "keywords": [
+    "BotWea",
+    "JavaScript",
+    "NodeJS",
+    "npm"
+  ],
+  "author": "Loli Killers",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/LoliKillers/SELF-LK/issues"
+  },
+  "homepage": "https://github.com/LoliKillers/SELF-LK#readme",
+  "dependencies": {
+    "@adiwajshing/baileys": "^3.5.2",
+    "cfonts": "^2.10.0",
+    "console-error": "0.0.4",
+    "console-info": "0.0.5",
+    "console-warn": "0.0.4",
+    "lk-api": "^1.6.3"
+  }
+}
