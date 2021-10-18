@@ -1,1 +1,0 @@
-worker: source install.sh && bash start.sh

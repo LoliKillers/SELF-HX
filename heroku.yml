@@ -1,0 +1,9 @@
+build:
+  docker:
+    web: Dockerfile
+run:
+  web: npm install
+  worker:
+    command:
+      - npm start
+    image: web
