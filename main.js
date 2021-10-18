@@ -8,6 +8,7 @@ const {
 } = require('@adiwajshing/baileys');
 const lk = require('lk-api');
 const { getBuffer } = require('./lib/getbuffer');
+const { getRandom } = require('./lib/getrandom');
 const cError = require('console-error');
 const cInfo = require('console-info');
 const cWarn = require('console-warn');
@@ -16,6 +17,8 @@ const request = require('request');
 const fs = require('fs');
 const { exec } = require('child_process');
 const moment = require('moment-timezone');
+const ffmpeg = require('fluent-ffmpeg');
+const speed = require('performance-now');
 
 const tebakgambar = JSON.parse(fs.readFileSync('./database/tebakgambar.json'))
 
@@ -62,14 +65,16 @@ module.exports = loli = async (loli, lol) => {
             return url.match(new RegExp(/https?:\/\/(www\.)?[-a-zA-Z0-9@:%.+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%+.~#?&/=]*)/, 'gi'))
         }
         
-        const sendImg = (img, text) => {
-            loli.sendMessage(from, img, image, { quoted: lol, caption: text })
+        const sendImg = (img) => {
+            loli.sendMessage(from, img, image, { quoted: lol })
         }
+
         const reply = (_txt) => {
             loli.sendMessage(from, _txt, text, { quoted: lol })
         }
         
         const sendMediaURL = async(to, url, text="", mids=[]) => {
+            await new Promise((r) => setTimeout(r, 1000));
             if (mids.length > 0) {
                 text = normalizeMention(to, text, mids)
             }
@@ -120,9 +125,55 @@ module.exports = loli = async (loli, lol) => {
         
         msg = {
             wait: 'Wait a moment!',
-            linkErr: 'The link is error, please check again'
+            linkErr: 'The link is error, please check again',
+            only: {
+                owner: 'Owner bot only!'
+            },
+            sticker: {
+                error: 'Opss, an error occurred, please try again later'
+            }
         }
         
+        function addMetadata(packname, author) {	
+            if (!packname) packname = 'Self-LK'; if (!author) author = 'LoliKillers';	
+            author = author.replace(/[^a-zA-Z0-9]/g, '');	
+            let name = `${author}_${packname}`
+            if (fs.existsSync(`./stick/${name}.exif`)) return `./stick/${name}.exif`
+            const json = {	
+                "sticker-pack-name": packname,
+                "sticker-pack-publisher": author,
+            }
+            const littleEndian = Buffer.from([0x49, 0x49, 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00, 0x01, 0x00, 0x41, 0x57, 0x07, 0x00])	
+            const bytes = [0x00, 0x00, 0x16, 0x00, 0x00, 0x00]	
+
+            let len = JSON.stringify(json).length	
+            let last	
+
+            if (len > 256) {	
+                len = len - 256	
+                bytes.unshift(0x01)	
+            } else {	
+                bytes.unshift(0x00)	
+            }	
+
+            if (len < 16) {	
+                last = len.toString(16)	
+                last = "0" + len	
+            } else {	
+                last = len.toString(16)	
+            }	
+
+            const buf2 = Buffer.from(last, "hex")	
+            const buf3 = Buffer.from(bytes)	
+            const buf4 = Buffer.from(JSON.stringify(json))	
+
+            const buffer = Buffer.concat([littleEndian, buf2, buf3, buf4])	
+
+            fs.writeFile(`./stick/${name}.exif`, buffer, (err) => {	
+                return `./stick/${name}.exif`	
+            })	
+        }
+
         if (tebakgambar.hasOwnProperty(sender.split('@')[0]) && !_Cmd && _bdy.match(/[1-9]{1}/)) {
             _kuis = true
             _jwb = tebakgambar[sender.split('@')[0]]
@@ -135,6 +186,23 @@ module.exports = loli = async (loli, lol) => {
             }
         }
         
+        function ActiveTime(seconds){
+            function Mounting(s){
+                return (s < 10 ? '0' : '') + s;
+            }
+            var hours = Math.floor(seconds / (60*60));
+            var minutes = Math.floor(seconds % (60*60) / 60);
+            var seconds = Math.floor(seconds % 60);
+
+            return `${Mounting(hours)} Hours ${Mounting(minutes)} Minutes ${Mounting(seconds)} Seconds`
+        }
+
+        const _Media = (type === 'imageMessage' || type === 'videoMessage')
+		const _QuotedImage = type === 'extendedTextMessage' && content.includes('imageMessage')
+		const _QuotedVideo = type === 'extendedTextMessage' && content.includes('videoMessage')
+		const _QuotedAudio = type === 'extendedTextMessage' && content.includes('audioMessage')
+		const _QuotedSticker = type === 'extendedTextMessage' && content.includes('stickerMessage')
+
         if (_Cmd && _Group) cInfo('[ COMMAND ] +>', command, '+> ', pushname, '+> ', groupName)
         if (_Cmd && !_Group) cInfo('[ COMMAND ] +>', command, '+> ', pushname)
         if (!_Cmd && !_Group) cInfo('[ PRIVATE ] +>', pushname)
@@ -143,18 +211,22 @@ module.exports = loli = async (loli, lol) => {
         if (!lol.key.fromMe && banChats === true) return
         switch (command) {
             case 'tes':
-            _txt = 'Mantap work ✓'
+            _txt = 'Oke ✓'
             reply(_txt)
             break
             case 'help':
             case 'menu':
             var _date = Date()
-            _tmnu = `Nama : ${pushname}\n`
-            + `Date : ${_date}`
-            + `\n\n*[+> STALKING MENU*\n`
+            _tmnu = `<//>\n\n`
+            + `*[+> INFO BOT <+]*\n\n`
+            + `> *Name* : ${loli.user.name}\n`
+            + `> *Nomor* : ${loli.user.jid}\n`
+            + `> *Prefix* : [ ${prefix} ]\n`
+            + `> *Runtime* : ${ActiveTime(uptime)}\n`
+            + `\n\n*[+> STALKING*\n`
             + `+> _${prefix}igstalk (username)_\n`
             + `+> _${prefix}ghstalk (username)_\n`
-            + `\n*[+> DOWNLOADER MENU*\n`
+            + `\n*[+> DOWNLOADER*\n`
             + `+> _${prefix}igstory (username)_\n`
             + `+> _${prefix}igdl (url)_\n`
             + `+> _${prefix}pinterest (query)_\n`
@@ -166,40 +238,431 @@ module.exports = loli = async (loli, lol) => {
             + `+> _${prefix}ytplaymp3 (query)_\n`
             + `+> _${prefix}ytplaymp4 (query)_\n`
             + `+> _${prefix}chara (query)_\n`
-            + `\n*[+> VOKAL MENU*\n`
+            + `\n*[+> VOKAL*\n`
             + `+> _${prefix}halah (text)_\n`
             + `+> _${prefix}hilih (text)_\n`
             + `+> _${prefix}huluh (text)_\n`
             + `+> _${prefix}heleh (text)_\n`
             + `+> _${prefix}holoh (text)_\n`
-            + `\n*[+> INFO MENU*\n`
+            + `\n*[+> INFO*\n`
             + `+> _${prefix}httpheaders (domain)_\n`
             + `+> _${prefix}ip_\n`
             + `+> _${prefix}iplookup (domain)_\n`
             + `+> _${prefix}proxy_\n`
             + `+> _${prefix}servermc_\n`
             + `+> _${prefix}kodepos_\n`
-            + `\n*[+> ANIME MENU*\n`
+            + `\n*[+> ANIME*\n`
             + `+> _${prefix}otaku (query)_\n`
-            + `\n*[+> CONVERT MENU*\n`
+            + `\n*[+> CONVERT*\n`
             + `+> _${prefix}emoji (emoji)_\n`
-            + `\n*[+> SEARCH MENU*\n`
+            + `+> _${prefix}sticker (reply)_\n`
+            + `+> _${prefix}stickergif (reply)_\n`
+            + `\n*[+> SEARCH*\n`
             + `+> _${prefix}ytsearch (query)_\n`
             + `+> _${prefix}moddroid (query)_\n`
             + `+> _${prefix}palingmurah (query)_\n`
             + `+> _${prefix}apkmody (query)_\n`
             + `+> _${prefix}jalantikus (query)_\n`
             + `+> _${prefix}happymod (query)_\n`
-            + `\n*[+> PRIMBON MENU*\n`
+            + `+> _${prefix}searchrepo (query)_\n`
+            + `\n*[+> PRIMBON*\n`
             + `+> _${prefix}hoax_\n`
-            + `\n*[+> GAME MENU*\n`
+            + `\n*[+> GAME*\n`
             + `+> _${prefix}tebakgambar_\n`
             + `\n*[+> DECRYPT & ENCRYPT*\n`
             + `+> _${prefix}dec32 (text)_\n`
             + `+> _${prefix}dec64 (text)_\n`
             + `+> _${prefix}enc32 (text)_\n`
             + `+> _${prefix}enc32 (text)_\n`
+            + `\n*[+> SFW*\n`
+            + `+> _${prefix}neko_\n`
+            + `+> _${prefix}waifu_\n`
+            + `+> _${prefix}tickle_\n`
+            + `+> _${prefix}wallpaper_\n`
+            + `+> _${prefix}kiss_\n`
+            + `+> _${prefix}hug_\n`
+            + `+> _${prefix}kemonomimi_\n`
+            + `+> _${prefix}baka_\n`
+            + `+> _${prefix}eron_\n`
+            + `+> _${prefix}fox_girl_\n`
+            + `+> _${prefix}feed_\n`
+            + `+> _${prefix}poke_\n`
+            + `+> _${prefix}pat_\n`
+            + `+> _${prefix}slap_\n`
+            + `+> _${prefix}ngif_\n`
+            + `+> _${prefix}smug_\n`
+            + `+> _${prefix}cuddle_\n`
+            + `+> _${prefix}avatar_\n`
+            + `\n*[+> NSFW*\n`
+            + `+> _${prefix}boobs_\n`
+            + `+> _${prefix}lewdk_\n`
+            + `+> _${prefix}futanari_\n`
+            + `+> _${prefix}futanari_\n`
+            + `+> _${prefix}anal_\n`
+            + `+> _${prefix}pussy_jpg_\n`
+            + `+> _${prefix}lewd_\n`
+            + `+> _${prefix}trap_\n`
+            + `+> _${prefix}ero_\n`
+            + `+> _${prefix}solog_\n`
+            + `+> _${prefix}lewdkemo_\n`
+            + `+> _${prefix}solo_\n`
+            + `+> _${prefix}cum_\n`
+            + `+> _${prefix}les_\n`
+            + `+> _${prefix}hololewd_\n`
+            + `+> _${prefix}holo_\n`
+            + `+> _${prefix}tits_\n`
+            + `+> _${prefix}nsfw_neko_gif_\n`
+            + `+> _${prefix}eroyuri_\n`
+            + `+> _${prefix}holoero_\n`
+            + `+> _${prefix}pussy_\n`
+            + `+> _${prefix}Random_hentai_gif_\n`
+            + `+> _${prefix}yuri_\n`
+            + `+> _${prefix}keta_\n`
+            + `+> _${prefix}hentai_\n`
+            + `+> _${prefix}erok_\n`
+            + `+> _${prefix}feetg_\n`
+            + `+> _${prefix}cum_jpg_\n`
+            + `+> _${prefix}nsfw_avatar_\n`
+            + `+> _${prefix}erofeet_\n`
+            + `+> _${prefix}blowjob_\n`
+            + `+> _${prefix}spank_\n`
+            + `+> _${prefix}kuni_\n`
+            + `+> _${prefix}classic_\n`
+            + `+> _${prefix}femdom_\n`
+            + `+> _${prefix}boobs_\n`
+            + `\n*[+> TEXTPRO*\n`
+            + `+> _${prefix}thunder (text)_\n`
+            + `+> _${prefix}neonlight (text)_\n`
+            + `+> _${prefix}bluemetal2 (text)_\n`
+            + `\n*[+> ISLAM*\n`
+            + `+> _${prefix}surah (nomor)_\n`
+            + `+> _${prefix}listsurah_\n`
+            + `\n*[+> BMKG*\n`
+            + `+> _${prefix}cuacapenerbangan_\n`
+            + `+> _${prefix}potensikebakaran_\n`
+            + `+> _${prefix}arahangin_\n`
+            + `+> _${prefix}gelombang_\n`
+            + `+> _${prefix}citrasatelit_\n`
+            + `+> _${prefix}infoiklim_\n`
+            + `+> _${prefix}gempa_\n`
+            + `\n*[+> OWNER SELF*\n`
+            + `+> _${prefix}self_\n`
+            + `+> _${prefix}public_\n`
+            + `\n\n\n*lk.api@1.6.3*`
+            + `\n*self-lk@1.0.0*`
             reply(_tmnu)
+            break
+            case 'runtime':
+            uptime = process.uptime()
+            var _run = speed()
+            var _time = speed() - _run
+            _capt = `\n*Bot Name* : ${loli.user.name}\n`
+            + `*Server* : ${loli.browserDescription[0]}\n`
+            + `*Speed* : ${_time.toFixed(4)} seconds\n`
+            + `*Runtime* : ${ActiveTime(uptime)}`
+            reply(_capt)
+            break
+		    case 's':
+		    case 'stiker':
+			case 'sticker':
+			case 'stickergif':
+			if ((_Media && !lol.message.videoMessage || _QuotedImage) && _msg.length == 0) {
+				const _enc = _QuotedImage ? JSON.parse(JSON.stringify(lol).replace('quotedM','m')).message.extendedTextMessage.contextInfo : lol
+				const _media = await loli.downloadAndSaveMediaMessage(_enc)
+				_random = getRandom('.webp')
+				await ffmpeg(`./${_media}`)
+				.input(_media)
+				.on('start', function (cmd) {
+					cWarn(`Started : ${cmd}`)
+				})
+				.on('error', function (err) {
+					cError(`Error : ${err}`)
+					fs.unlinkSync(_media)
+	    			reply(err)
+				})
+				.on('end', function () {
+					cInfo('Convert successfully ✓')
+					exec(`webpmux -set exif ${addMetadata('Self-LK', 'LoliKillers')} ${_random} -o ${_random}`, async (error) => {
+					    if (error) return reply(msg.sticker.error)
+						loli.sendMessage(from, fs.readFileSync(_random), sticker, { quoted: lol })
+					    fs.unlinkSync(_media)	
+						fs.unlinkSync(_random)	
+					})
+					/*loli.sendMessage(from, fs.readFileSync(_random), sticker, { quoted: lol })
+					fs.unlinkSync(_media)
+			        fs.unlinkSync(_random)*/
+				})
+				.addOutputOptions([`-vcodec`,`libwebp`,`-vf`,`scale='min(320,iw)':min'(320,ih)':force_original_aspect_ratio=decrease,fps=15, pad=320:320:-1:-1:color=white@0.0, split [a][b]; [a] palettegen=reserve_transparent=on:transparency_color=ffffff [p]; [b][p] paletteuse`])
+				.toFormat('webp')
+				.save(_random)
+			} else if ((_Media && lol.message.videoMessage.seconds < 11 || _QuotedVideo && lol.message.extendedTextMessage.contextInfo.quotedMessage.videoMessage.seconds < 11) && _msg.length == 0) {
+				const _enc = _QuotedVideo ? JSON.parse(JSON.stringify(lol).replace('quotedM','m')).message.extendedTextMessage.contextInfo : lol
+				const _media = await loli.downloadAndSaveMediaMessage(_enc)
+				_random = getRandom('.webp')
+				reply(msg.wait)
+				await ffmpeg(`./${_media}`)
+				.inputFormat(media.split('.')[1])
+				.on('start', function (_cmd) {
+					cWarn(`Started : ${_cmd}`)
+				})
+				.on('error', function (_err) {
+					cError(`Error : ${_err}`)
+					fs.unlinkSync(_media)
+					tipe = _media.endsWith('.mp4') ? 'video' : 'gif'
+					reply(`Failed to convert ${tipe} to sticker`)
+				})
+				.on('end', function () {
+					cInfo('Convert successfully ✓')
+					exec(`webpmux -set exif ${addMetadata('Self-LK', 'LoliKillers')} ${_random} -o ${_random}`, async (error) => {
+						if (error) return reply(mess.error.stick)
+						loli.sendMessage(from, fs.readFileSync(_random), sticker, { quoted: lol })
+						fs.unlinkSync(_media)
+						fs.unlinkSync(_random)
+					})
+					/*loli.sendMessage(from, fs.readFileSync(_random), sticker, { quoted: mek })
+					fs.unlinkSync(media)
+					fs.unlinkSync(ran)*/
+				})
+				.addOutputOptions([`-vcodec`,`libwebp`,`-vf`,`scale='min(320,iw)':min'(320,ih)':force_original_aspect_ratio=decrease,fps=15, pad=320:320:-1:-1:color=white@0.0, split [a][b]; [a] palettegen=reserve_transparent=on:transparency_color=ffffff [p]; [b][p] paletteuse`])
+				.toFormat('webp')
+				.save(ran)
+			} else if ((_Media || _QuotedImage) && args[0] == 'nobg') {
+				const _enc = isQuotedImage ? JSON.parse(JSON.stringify(lol).replace('quotedM','m')).message.extendedTextMessage.contextInfo : lol
+				const _media = await loli.downloadAndSaveMediaMessage(_enc)
+				_random_webp = getRandom('.webp')
+				_random_png = getRandom('.png')
+				reply(msg.wait)
+				keyrmbg = 'Your-ApiKey'
+				await removeBackgroundFromImageFile({ path: _media, apiKey: keyrmbg, size: 'auto', type: 'auto', _random_webp}).then(res => {
+				    fs.unlinkSync(_media)
+					let _buffer = Buffer.from(res.base64img, 'base64')
+					fs.writeFileSync(ranp, buffer, (err) => {
+						if (err) return reply('Opss, an error occurred, please try again later')
+					})
+					exec(`ffmpeg -i ${_random_png} -vcodec libwebp -filter:v fps=fps=20 -lossless 1 -loop 0 -preset default -an -vsync 0 -s 512:512 ${_random_webp}`, (err) => {
+						fs.unlinkSync(_random_png)
+						if (err) return reply(msg.sticker.error)
+						exec(`webpmux -set exif ${addMetadata('Self-LK', 'LoliKillers')} ${_random_png} -o ${_random_webp}`, async (error) => {
+							if (error) return reply(msg.sticker.error)
+							loli.sendMessage(from, fs.readFileSync(_random_webp), sticker, {quoted: lol})
+							fs.unlinkSync(_random_webp)
+						})
+						//loli.sendMessage(from, fs.readFileSync(_random_webp), sticker, {quoted: lol})
+					})
+				})
+			} else {
+				reply(`Kirim gambar dengan caption ${prefix}sticker atau tag gambar yang sudah dikirim`)
+			}
+			break
+            case 'public':
+            if (!lol.key.fromMe) return reply(msg.only.owner)
+            if (banChats === false) return
+            banChats = false
+            reply('*</PUBLIC-MODE>*')
+            break
+            case 'self':
+            if (!lol.key.fromMe) return reply(msg.only.owner)
+            if (banChats === true) return
+            uptime = process.uptime()
+            banChats = true
+            reply('*</SELF-MODE>*')
+            break
+            case 'infoiklim':
+            var _ = await lk.InfoIklim()
+            reply(msg.wait)
+            var _pic = _.result[0].thumb
+            sendMediaURL(from, _pic)
+            break
+            case 'citrasatelit':
+            var _ = await lk.CitraSatelit()
+            reply(msg.wait)
+            var _pic = _.result[0].thumb
+            sendMediaURL(from, _pic)
+            break
+            case 'gelombang':
+            var _ = await lk.PrakiraanGelombang()
+            reply(msg.wait)
+            var _pic = _.result[0].thumb
+            sendMediaURL(from, _pic)
+            break
+            case 'arahangin':
+            var _ = await lk.PrakiraanAngin()
+            reply(msg.wait)
+            var _pic = _.result[0].thumb
+            sendMediaURL(from, _pic)
+            break
+            case 'potensikebakaran':
+            var _ = await lk.PotensiKebakaran()
+            reply(msg.wait)
+            var _pic = _.result[0].thumb
+            sendMediaURL(from, _pic)
+            break
+            case 'neonlight':
+            if (!q) return reply(`*Example* : ${prefix + command} Loli Killers`)
+            lk.TxtProNeonLight(q)
+            .then(result => {
+                var _pro = result.result.output
+                sendMediaURL(from, _pro)
+            })
+            break
+            case 'bluemetal2':
+            if (!q) return reply(`*Example* : ${prefix + command} Loli Killers`)
+            lk.TxtProBlueMetal2(q)
+            .then(result => {
+                var _pro = result.result.output
+                sendMediaURL(from, _pro)
+            })
+            break
+            case 'thunder':
+            if (!q) return reply(`*Example* : ${prefix + command} Loli Killers`)
+            lk.TxtProThunder(q)
+            .then(result => {
+                var _pro = result.result.output
+                sendMediaURL(from, _pro)
+            })
+            break
+            case 'kemonomimi':
+            case 'neko':
+            case 'waifu':
+            case 'tickle':
+            case 'wallpaper':
+            case 'eron':
+            case 'fox_girl':
+            case 'kiss':
+            case 'hug':
+            case 'baka':
+            case 'feed':
+            case 'slap':
+            case 'poke':
+            case 'pat':
+            case 'ngif':
+            case 'smug':
+            case 'cuddle':
+            case 'avatar':
+            reply(msg.wait)
+            lk.Sfw(`${command}`)
+            .then(async result => {
+                sendMediaURL(from, result)
+            })
+            break
+            case 'boobs':
+            case 'femdom':
+            case 'classic':
+            case 'kuni':
+            case 'spank':
+            case 'blowjob':
+            case 'erofeet':
+            case 'nsfw_avatar':
+            case 'feetg':
+            case 'erok':
+            case 'cum_jpg':
+            case 'hentai':
+            case 'keta':
+            case 'yuri':
+            case 'Random_hentai_gif':
+            case 'pussy':
+            case 'holoero':
+            case 'eroyuri':
+            case 'nsfw_neko_gif':
+            case 'holo':
+            case 'tits':
+            case 'hololewd':
+            case 'les':
+            case 'cum':
+            case 'solo':
+            case 'lewdkemo':
+            case 'solog':
+            case 'trap':
+            case 'ero':
+            case 'lewd':
+            case 'anal':
+            case 'pussy_jpg':
+            case 'futanari':
+            case 'lewdk':
+            reply(msg.wait)
+            lk.Nsfw(`${command}`)
+            .then(async result => {
+                sendMediaURL(from, result)
+            })
+            break
+            case 'searchrepo':
+            if (!q) return reply(`*Example* : ${prefix + command} LoliKillers`)
+            var _ = await lk.SearchRepo(q)
+            reply(msg.wait)
+            _capt = `\n*Total Count* : ${_.totalCount}\n\n`
+            for (var x of _.items) {
+                _capt += `*Id* : ${x.id}\n`
+                + `*Node Id* : ${x.node_d}\n`
+                + `*Name Repo* : ${x.name_repo}\n`
+                + `*Full Name Repo* : ${x.full_name_repo}\n`
+                + `*Url Repo* : ${x.url_repo}\n`
+                + `*Description* : ${x.description}\n`
+                + `*Git Url* : ${x.git_url}\n`
+                + `*Ssh Url* : ${x.ssh_url}\n`
+                + `*Clone Url* : ${x.clone_url}\n`
+                + `*Clone Url* : ${x.clone_url}\n`
+                + `*Svn Url* : ${x.svn_url}\n`
+                + `*Homepage* : ${x.homepage}\n`
+                + `*Star* : ${x.stargazers}\n`
+                + `*Watch* : ${x.watchers}\n`
+                + `*Forks* : ${x.forks}\n`
+                + `*Branch* : ${x.default_branch}\n`
+                + `*Language* : ${x.language}\n`
+                + `*Is Private* : ${x.is_private}\n`
+                + `*Is Forks* : ${x.is_fork}\n`
+                + `*Created Date* : ${x.created_at}\n`
+                + `*Last Update* : ${x.updated_at}\n`
+                + `*Push Date* : ${x.pushed_at}\n`
+                + `\n<+=========================+>\n\n`
+            }
+            reply(_capt)
+            break
+            case 'cuacapenerbangan':
+            var _ = await lk.CuacaPenerbangan()
+            reply(msg.wait)
+            var _pic = _.result[0].thumb
+            _capt = '\n'
+            for (var x of _.result) {
+                _capt += `*Daerah* : ${x.daerah}\n`
+                + `*Cuaca* : ${x.cuaca}\n`
+                + `*Thumbnail* : ${x.thumb}\n`
+                + `*Arah Angin* : ${x.arah_angin}\n`
+                + `*Jarak Pandang* : ${x.jarak_pandang}\n`
+                + `*Suhu* : ${x.suhu}\n`
+                + `*Embun* : ${x.embun}\n`
+                + `*Tekanan* : ${x.tekanan}\n`
+                + `*Waktu* : ${x.waktu}\n`
+                + `\n<+=========================+>\n\n`
+            }
+            sendMediaURL(from, _pic, _capt)
+            break
+            case 'covidglobal':
+            var _ = await lk.CovidGlobal()
+            reply(msg.wait)
+            _capt = '\n'
+            for (var _x of _) {
+                var x = _x.attributes
+                _capt += `*Objectid* : ${x.OBJECTID}\n`
+                + `*Country* : ${x.Country_Region}\n`
+                + `*Last Update* : ${x.Last_Update}\n`
+                + `*Lattitude* : ${x.Lat}\n`
+                + `*Longtitude* : ${x.Long_}\n`
+                + `*Confirmed* : ${x.Confirmed}\n`
+                + `*Deaths* : ${x.Deaths}\n`
+                + `*Recovered* : ${x.Recovered}\n`
+                + `*Active* : ${x.Active}\n`
+                + `\n<+=========================+>\n\n`
+            }
+            reply(_capt)
+            break
+            case 'covidindo':
+            var _ = await lk.CovidId()
+            _capt = `*Country* : ${_[0].name}\n`
+            + `*Positif* : ${_[0].positif}\n`
+            + `*Sembuh* : ${_[0].sembuh}\n`
+            + `*Meninggal* : ${_[0].dirawat}\n`
+            + `*Dirawat* : ${_[0].dirawat}\n`
+            reply(_capt)
             break
             case 'dec64':
             if (!q) return reply(`*Example* : ${prefix + command} TG9saSBLaWxsZXJz`)
@@ -273,6 +736,31 @@ module.exports = loli = async (loli, lol) => {
             }
             reply(_capt)
             break
+            case 'gempa':
+            var _ = await lk.GempaTerkini()
+            _capt = '\n'
+            for (var x of _.result) {
+                _capt += `*Waktu* : ${x.waktu}\n`
+                + `*Magnitudo* : ${x.magnitudo}\n`
+                + `*Kedalaman* : ${x.kedalaman}\n`
+                + `*Lokasi* : ${x.lokasi}\n`
+                + `\n<+=========================+>\n\n`
+            }
+            reply(_capt)
+            break
+            case 'surah':
+            if (!q) return reply(`*Example* : ${prefix + command} 1`)
+            reply(msg.wait)
+            var _ = await lk.Surah(q)
+            _capt = '\n'
+            for (var x of _.result) {
+                _capt += `*Ayat* : ${x.ayat}\n`
+                + `*Arab* : ${x.arab}\n`
+                + `*Arti* : ${x.arti}\n`
+                + `\n<+=========================+>\n\n`
+            }
+            reply(_capt)
+            break
             case 'kodepos':
             if (!q) return reply(`*Example* : ${prefix + command} magetan`)
             reply(msg.wait)
@@ -297,6 +785,19 @@ module.exports = loli = async (loli, lol) => {
                 + `*Port* : ${x.port}\n`
                 + `*Versi* : ${x.versi}\n`
                 + `*Player* : ${x.player}\n`
+                + `<+=========================+>\n\n`
+            }
+            reply(_capt)
+            break
+            case 'listsurah':
+            reply(msg.wait)
+            var _ = await lk.ListSurah()
+            _capt = ''
+            for (var x of _.result) {
+                _capt += `*Nomor* : ${x.nomor}\n`
+                + `*Nama* : ${x.nama}\n`
+                + `*Asma* : ${x.asma}\n`
+                + `*Arti* : ${x.arti}\n`
                 + `<+=========================+>\n\n`
             }
             reply(_capt)
