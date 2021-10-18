@@ -1,3 +1,4 @@
 build:
     docker:
-        web: Dockerfile
+        web: npm install -g forever
+        web: npm start
