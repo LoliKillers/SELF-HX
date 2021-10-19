@@ -19,8 +19,9 @@ const { exec } = require('child_process');
 const moment = require('moment-timezone');
 const ffmpeg = require('fluent-ffmpeg');
 const speed = require('performance-now');
+const phoneNum = require('awesome-phonenumber');
 
-const tebakgambar = JSON.parse(fs.readFileSync('./database/tebakgambar.json'))
+const tebakgambar = JSON.parse(fs.readFileSync('./database/tebakgambar.json'));
 
 var banChats = false
 
@@ -54,9 +55,17 @@ module.exports = loli = async (loli, lol) => {
 		const groupMembers = _Group ? groupMetadata.participants : ''
 		const groupDesc = _Group ? groupMetadata.desc : ''
 		const groupOwner = _Group ? groupMetadata.owner : ''
-		//const groupAdmins = _Group ? getGroupAdmins(groupMembers) : ''
+		const _Me = lol.key.fromMe
+		const getGroupAdmins = (participants) => {
+		    admin = []
+		    for (var x of participants) {
+		        x.isAdmin ? admin.push(x.jid) : ''
+		    }
+		    return admin
+		}
+		const groupAdmins = _Group ? getGroupAdmins(groupMembers) : ''
 		//const _BotGroupAdmins = groupAdmins.includes(botNumber) || false
-		//const _GroupAdmins = groupAdmins.includes(sender) || false
+		const _Admin = groupAdmins.includes(sender) || false
         //const _Vote = _Group ? voting.includes(from) : false
         const conts = lol.key.fromMe ? loli.user.jid : loli.contacts[sender] || { notify: jid.replace(/@.+/, '') }
         const pushname = lol.key.fromMe ? loli.user.name : conts.notify || conts.vname || conts.name || '-'
@@ -127,7 +136,8 @@ module.exports = loli = async (loli, lol) => {
             wait: 'Wait a moment!',
             linkErr: 'The link is error, please check again',
             only: {
-                owner: 'Owner bot only!'
+                owner: 'Owner bot only!',
+                admin: 'Admin group only!'
             },
             sticker: {
                 error: 'Opss, an error occurred, please try again later'
@@ -196,7 +206,7 @@ module.exports = loli = async (loli, lol) => {
 
             return `${Mounting(hours)} Hours ${Mounting(minutes)} Minutes ${Mounting(seconds)} Seconds`
         }
-
+        
         const _Media = (type === 'imageMessage' || type === 'videoMessage')
 		const _QuotedImage = type === 'extendedTextMessage' && content.includes('imageMessage')
 		const _QuotedVideo = type === 'extendedTextMessage' && content.includes('videoMessage')
@@ -217,6 +227,7 @@ module.exports = loli = async (loli, lol) => {
             case 'help':
             case 'menu':
             var _date = Date()
+            var uptime = process.uptime()
             _tmnu = `<//>\n\n`
             + `*[+> INFO BOT <+]*\n\n`
             + `> *Name* : ${loli.user.name}\n`
@@ -348,9 +359,46 @@ module.exports = loli = async (loli, lol) => {
             + `\n*[+> OWNER SELF*\n`
             + `+> _${prefix}self_\n`
             + `+> _${prefix}public_\n`
+            + `\n*[+> TAG*\n`
+            + `+> _${prefix}hidetag (text)_\n`
+            + `+> _${prefix}kontag (text)_\n`
+            + `\n*[+> MORE*\n`
+            + `+> _${prefix}runtime_\n`
             + `\n\n\n*lk.api@1.6.3*`
             + `\n*self-lk@1.0.0*`
             reply(_tmnu)
+            break
+            case 'kontag':
+            if (!_Me && _Admin) return reply(msg.only.admin)
+            _split1 = q.split('|')[0]
+            _split2 = q.split('|')[1]
+            if (isNaN(_split1)) return reply('Invalid phone number!')
+            _member = []
+            for (var x of groupMembers) {
+                _member.push(x.jid)
+            }
+            vcard = 'BEGIN:VCARD\n'
+            + 'VERSION:3.0\n'
+            + `FN:${_split2}\n`
+            + `TEL;type=CELL;type=VOICE;waid=${_split1}:${phoneNum('+' + _split1).getNumber('internasional')}\n`
+            + 'END:VCARD'.trim()
+            loli.sendMessage(from, {displayName: `${_split2}`, vcard: vcard}, contact, {contextInfo: {"mentionedJid": _member}})
+            break
+            case 'hidetag':
+            if (!_Me && !_Admin) return reply(msg.only.admin)
+            if (!_Group) return reply(msg.only.group)
+            var _gc = await loli.groupMetadata(from)
+            var _member = _gc['participants']
+            var _hdtg = []
+            _member.map(async _admn => {
+                _hdtg.push(_admn.id.replace('c.us', 's.whatsapp.net'))
+            })
+            var _hidetag = {
+                text: q,
+                contextInfo: { mentionedJid: _hdtg },
+                quoted: lol
+            }
+            loli.sendMessage(from, _hidetag, text)
             break
             case 'runtime':
             uptime = process.uptime()
@@ -455,13 +503,13 @@ module.exports = loli = async (loli, lol) => {
 			}
 			break
             case 'public':
-            if (!lol.key.fromMe) return reply(msg.only.owner)
+            if (!_Me) return reply(msg.only.owner)
             if (banChats === false) return
             banChats = false
             reply('*</PUBLIC-MODE>*')
             break
             case 'self':
-            if (!lol.key.fromMe) return reply(msg.only.owner)
+            if (!_Me) return reply(msg.only.owner)
             if (banChats === true) return
             uptime = process.uptime()
             banChats = true

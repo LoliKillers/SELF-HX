@@ -1,14 +1,13 @@
 {
   "name": "self-lk",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "SELF-LK Forked From SELF-HX",
   "main": "index.js",
   "directories": {
     "lib": "lib"
   },
   "scripts": {
-    "start": "forever start -w --minUptime 604800000ms index.js",
-    "test": "node test"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
@@ -16,27 +15,26 @@
   },
   "keywords": [
     "BotWea",
-    "JavaScript",
+    "Whatsapp",
     "NodeJS",
-    "npm"
+    "JavaScript"
   ],
   "author": "Loli Killers",
-  "license": "MIT",
+  "license": "ISC",
   "bugs": {
     "url": "https://github.com/LoliKillers/SELF-LK/issues"
   },
   "homepage": "https://github.com/LoliKillers/SELF-LK#readme",
   "dependencies": {
     "@adiwajshing/baileys": "^3.5.2",
+    "awesome-phonenumber": "^2.64.0",
     "cfonts": "^2.10.0",
     "console-error": "0.0.4",
     "console-info": "0.0.5",
     "console-warn": "0.0.4",
-    "fluent-ffmpeg": "^2.1.2",
-    "forever-monitor": "^3.0.3",
-    "lk-api": "^1.6.3"
+    "fluent-ffmpeg": "^2.1.2"
   },
-  "engines": {
-      "forever": "4.0.1"
+  "devDependencies": {
+    "lk-api": "^1.6.3"
   }
 }
