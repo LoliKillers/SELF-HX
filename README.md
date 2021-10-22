@@ -46,5 +46,3 @@
 ## ```Thanks```
 * **Allah SWT**
 * [**Hexagonz**](https://github.com/Hexagons)
-
-[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/LoliKillers/SELF-LK)
