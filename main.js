@@ -27,6 +27,7 @@ const moment = require('moment-timezone');
 const ffmpeg = require('fluent-ffmpeg');
 const speed = require('performance-now');
 const phoneNum = require('awesome-phonenumber');
+const { InfoIklim } = require('plugins/bmkg/infoiklim');
 
 const tebakgambar = JSON.parse(read('./database/tebakgambar.json'));
 
@@ -74,6 +75,23 @@ module.exports = loli = async (loli, lol) => {
 		    return admin
 		}
 		
+		const botNumber = loli.user.jid
+		const groupAdmins = _Group ? getGroupAdmins(groupMembers) : ''
+		const _GroupAdmins = groupAdmins.includes(sender) || false
+		const _BotGroupAdmins = groupAdmins.includes(botNumber) || false
+		const _Admin = groupAdmins.includes(sender) || false
+        //const _Vote = _Group ? voting.includes(from) : false
+        const conts = lol.key.fromMe ? loli.user.jid : loli.contacts[sender] || { notify: jid.replace(/@.+/, '') }
+        const pushname = lol.key.fromMe ? loli.user.name : conts.notify || conts.vname || conts.name || '-'
+
+        
+        const mentionByTag = type == "extendedTextMessage" && lol.message.extendedTextMessage.contextInfo != null ? lol.message.extendedTextMessage.contextInfo.mentionedJid : []
+        const mentionByReply = type == "extendedTextMessage" && lol.message.extendedTextMessage.contextInfo != null ? lol.message.extendedTextMessage.contextInfo.participant || "" : ""
+        const mention = typeof(mentionByTag) == 'string' ? [mentionByTag] : mentionByTag
+        mention != undefined ? mention.push(mentionByReply) : []
+        const mentionUser = mention != undefined ? mention.filter(n => n) : []
+        const mentioned = mention
+        
 		var dates = moment().tz('Asia/Jakarta').format("YYYY-MM-DDTHH:mm:ss");
         var date = new Date(dates);
         var tahun = date.getFullYear();
@@ -108,13 +126,6 @@ module.exports = loli = async (loli, lol) => {
         const Tanggal= "" + hari + ", " + tanggal + " " + bulan + " " + tahun;
         const Jam = moment.tz('Asia/Jakarta').format('HH:mm:ss z')
 		const _thumbnail = read(`img/loli${xyz}.jpg`)
-
-		const groupAdmins = _Group ? getGroupAdmins(groupMembers) : ''
-		//const _BotGroupAdmins = groupAdmins.includes(botNumber) || false
-		const _Admin = groupAdmins.includes(sender) || false
-        //const _Vote = _Group ? voting.includes(from) : false
-        const conts = lol.key.fromMe ? loli.user.jid : loli.contacts[sender] || { notify: jid.replace(/@.+/, '') }
-        const pushname = lol.key.fromMe ? loli.user.name : conts.notify || conts.vname || conts.name || '-'
 
         const _Url = (url) => {
             return url.match(new RegExp(/https?:\/\/(www\.)?[-a-zA-Z0-9@:%.+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%+.~#?&/=]*)/, 'gi'))
@@ -185,6 +196,7 @@ module.exports = loli = async (loli, lol) => {
         
         msg = {
             wait: 'Wait a moment!',
+            error: 'Opsss, looks like something went wrong?',
             linkErr: 'The link is error, please check again',
             only: {
                 owner: 'Owner bot only!',
@@ -452,6 +464,10 @@ module.exports = loli = async (loli, lol) => {
             + `${simbol} _${prefix}hidetag (text)_\n`
             + `${simbol} _${prefix}kontag (text)_\n`
             + `╙───+>\n\n`
+            + `\n*❏ GROUP*\n`
+            + `${simbol} _${prefix}demote_\n`
+            + `${simbol} _${prefix}promote_\n`
+            + `╙───+>\n\n`
             + `\n*❏ MORE*\n`
             + `${simbol} _${prefix}runtime_\n`
             + `╙───+>\n\n`
@@ -514,11 +530,22 @@ module.exports = loli = async (loli, lol) => {
             uptime = process.uptime()
             var _run = speed()
             var _time = speed() - _run
-            _capt = `\n*Bot Name* : ${loli.user.name}\n`
-            + `*Server* : ${loli.browserDescription[0]}\n`
-            + `*Speed* : ${_time.toFixed(4)} seconds\n`
-            + `*Runtime* : ${ActiveTime(uptime)}`
-            reply(_capt)
+            _ping = `*Speed* : ${_time.toFixed(4)} seconds\n`
+            _run = `*Runtime* : `
+            loli.sendMessage(from, `(>_<)`, text, { quoted: lol, contextInfo: {
+                text: "Wea Bot 🤖",
+                forwardingScore: 500,
+                isForwarded: true,
+                sendEphemeral: true,
+                externalAdReply: {
+                    title: `RUNTIME`,
+                    body: `${ActiveTime(uptime)}`,
+                    previewType: 1,
+                    thumbnail: _thumbnail,
+                    sourceUrl: "https://badai-api.herokuapp.com",
+                },
+                mentionedJid: sender
+            }})
             break
 		    case 's':
 		    case 'stiker':
@@ -616,26 +643,61 @@ module.exports = loli = async (loli, lol) => {
             if (!_Me) return reply(msg.only.owner)
             if (banChats === false) return
             banChats = false
-            reply('*</PUBLIC-MODE>*')
+            loli.sendMessage(from, '_*Ok ✓*_', text, { quoted: lol, contextInfo: {
+                text: "Wea Bot 🤖",
+                forwardingScore: 500,
+                isForwarded: true,
+                sendEphemeral: true,
+                externalAdReply: {
+                    title: `PUBLIC MODE`,
+                    body: `${Tanggal}`,
+                    previewType: 1,
+                    thumbnail: _thumbnail,
+                    sourceUrl: "https://badai-api.herokuapp.com",
+                },
+                mentionedJid: sender
+            }})
             break
             case 'self':
             if (!_Me) return reply(msg.only.owner)
             if (banChats === true) return
             uptime = process.uptime()
             banChats = true
-            reply('*</SELF-MODE>*')
+            loli.sendMessage(from, '_*Ok ✓*_', text, { quoted: lol, contextInfo: {
+                text: "Wea Bot 🤖",
+                forwardingScore: 500,
+                isForwarded: true,
+                sendEphemeral: true,
+                externalAdReply: {
+                    title: `SELF MODE`,
+                    body: `${Tanggal}`,
+                    previewType: 1,
+                    thumbnail: _thumbnail,
+                    sourceUrl: "https://badai-api.herokuapp.com",
+                },
+                mentionedJid: sender
+            }})
             break
             case 'infoiklim':
-            var _ = await lk.InfoIklim()
             reply(msg.wait)
-            var _pic = _.result[0].thumb
-            sendMediaURL(from, _pic)
+            InfoIklim()
+            .then(result => {
+                var _pic = result.result[0].thumb
+                sendMediaURL(from, _pic)
+            })
+            .catch(error => {
+                reply(msg.error)
+            })
             break
             case 'citrasatelit':
-            var _ = await lk.CitraSatelit()
-            reply(msg.wait)
-            var _pic = _.result[0].thumb
-            sendMediaURL(from, _pic)
+            CitraSatelit()
+            then(result => {
+                var _pic = result.result[0].thumb
+                sendMediaURL(from, _pic)
+            })
+            .catch(error => {
+                reply(msg.error)
+            })
             break
             case 'gelombang':
             var _ = await lk.PrakiraanGelombang()
@@ -1461,6 +1523,40 @@ module.exports = loli = async (loli, lol) => {
             })
             .catch(e => cError(e))
             break*/
+            case 'promote':
+            case 'pm':
+                if (!_Group) return reply(msg.only.group)
+                if (!_GroupAdmins && !_Me) return reply(msg.only.admin)
+                if (!_BotGroupAdmins) return reply(msg.bot.admin)
+                if (mentionByTag.length < 1) {
+                    loli.groupMakeAdmin(from, mentionByTag)
+                        .then((res) => reply('Sucess promote member'))
+                        .catch((err) => reply('Opss, Error'))
+                } else if (mentionUser) {
+                    loli.groupMakeAdmin(from, mentionUser)
+                        .then((res) => reply('Sucess promote member'))
+                        .catch((err) => reply('Opss, Error'))
+                } else {
+                    reply(`Kirim perintah ${prefix + command} @tag atau nomor atau reply pesan member yang ingin di promote`)
+                }
+            break
+            case 'dm':
+            case 'demote':
+                if (!_Group) return reply(msg.only.group)
+                if (!_GroupAdmins && !_Me) return reply(msg.only.admin)
+                if (!_BotGroupAdmins) return reply(msg.bot.admin)
+                if (mentionByTag.length < 1) {
+                    loli.groupDemoteAdmin(from, mentionByTag)
+                        .then((res) => reply('Sucess demote admin'))
+                        .catch((err) => reply('Opss, Error'))
+                } else if (mentionUser) {
+                    loli.groupDemoteAdmin(from, mentionUser)
+                        .then((res) => reply('Sucess demote admin'))
+                        .catch((err) => reply('Opss, Error'))
+                } else {
+                    reply(`Kirim perintah ${prefix + command} @tag atau nomor atau reply pesan member yang ingin di promote`)
+                }
+            break
             default:
             if (_bdy.startsWith('>')) {
                 try {
