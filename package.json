@@ -33,7 +33,9 @@
     "console-error": "0.0.4",
     "console-info": "0.0.5",
     "console-warn": "0.0.4",
-    "fluent-ffmpeg": "^2.1.2"
+    "fluent-ffmpeg": "^2.1.2",
+    "rootpath": "^0.1.2",
+    "twisters": "^1.1.0"
   },
   "devDependencies": {
     "lk-api": "^1.6.3"
