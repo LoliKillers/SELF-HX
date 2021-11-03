@@ -15,7 +15,7 @@ const twister = new Twisters();
 
 const starts = async (loli = new WAConnection()) => {
     loli.logger.level = 'warn'
-    loli.version = [2, 2123, 8]
+    loli.version = [2, 2140, 12]
     loli.browserDescription = ['Baileys', 'Chrome', '3.0']
     console.log(banner.string)
     loli.on('qr', () => {
